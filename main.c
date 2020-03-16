@@ -260,7 +260,10 @@ int main(){
   etiquetage(all, neur);
   for(int i = 0; i<6; i++){
     for(int j = 0; j<10; j++){
-      printf("%d", neur[i*10+j].categorie);
+      if(!neur[i*10+j].categorie) printf("%d", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 1) printf("\033[44m%d\033[0m", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 2) printf("\033[41m%d\033[0m", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 3) printf("\033[42m%d\033[0m", neur[i*10+j].categorie);
     }
     printf("\n");
   }
