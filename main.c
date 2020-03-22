@@ -3,26 +3,23 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-
+#include "list.h"
 
 #define SIZE 150
 #define SIZE_T 60
 #define DATA_SIZE 4
 
-
+typedef struct Fleur Fleur;
 struct Fleur {
   double * vect;
   char * type;
 };
-typedef struct Fleur Fleur;
 
-
+typedef struct Neurone Neurone;
 struct Neurone {
   double * vect;
   int categorie;
 };
-typedef struct Neurone Neurone;
-
 
 void fillVect(Fleur * all){
   for(int i = 0; i<SIZE; i++){
@@ -192,8 +189,8 @@ void diffuse(double * all, Neurone * neur, int ij[2], int voisin, double a){
   }
 }
 
-
 void distEuc(Fleur * all, Neurone * neur, int * tab){
+  List *list = NULL;
   double a = 0.8;
   double voisin = findLimit();
   double a2 = a, t_total = 500;
@@ -214,15 +211,29 @@ void distEuc(Fleur * all, Neurone * neur, int * tab){
           som += pow(all[tab[i]].vect[j] - neur[x].vect[j],2);
         }
         som = sqrt(som);
-        if(som < bestDist){
+        if(som <= bestDist){
+          if(som == bestDist){
+            list_append(list, x);
+          }
+          else{
+            free(list);
+            list = NULL;
+            list = list_append(list, x);
+          }
           bestDist = som;
-          indexGagnant = x;
         }
+      }
+      indexGagnant = list->data;
+      if(list_length(list) > 1){
+        int div = RAND_MAX / list_length(list);
+        int r = (rand() / div);
+        indexGagnant = list_getDataByIndex(list, r);
       }
       findIJ(indexGagnant, 6, 10, ij);
       diffuse(all[tab[i]].vect, neur, ij, voisin, a2);
     }
   }
+  free(list);
 }
 
 
@@ -247,6 +258,18 @@ void etiquetage(Fleur * all, Neurone * neur){
   }
 }
 
+void printNetwork(Neurone * neur){
+  for(int i = 0; i<6; i++){
+    for(int j = 0; j<10; j++){
+      if(!neur[i*10+j].categorie) printf("%d", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 1) printf("\033[44m%d\033[0m", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 2) printf("\033[41m%d\033[0m", neur[i*10+j].categorie);
+      else if(neur[i*10+j].categorie == 3) printf("\033[42m%d\033[0m", neur[i*10+j].categorie);
+    }
+    printf("\n");
+  }
+}
+
 
 int main(){
   srand(time(NULL));
@@ -258,14 +281,11 @@ int main(){
   int *tab = malloc(SIZE * sizeof(int));
   distEuc(all, neur, tab);
   etiquetage(all, neur);
-  for(int i = 0; i<6; i++){
-    for(int j = 0; j<10; j++){
-      if(!neur[i*10+j].categorie) printf("%d", neur[i*10+j].categorie);
-      else if(neur[i*10+j].categorie == 1) printf("\033[44m%d\033[0m", neur[i*10+j].categorie);
-      else if(neur[i*10+j].categorie == 2) printf("\033[41m%d\033[0m", neur[i*10+j].categorie);
-      else if(neur[i*10+j].categorie == 3) printf("\033[42m%d\033[0m", neur[i*10+j].categorie);
-    }
-    printf("\n");
-  }
+  printNetwork(neur);
+
+  free(all);
+  free(neur);
+  free(tab);
+
   return 0;
 }
