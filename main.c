@@ -9,6 +9,8 @@
 #define SIZE_T 60
 #define DATA_SIZE 4
 
+// 5 x racine(nbVecteurs)
+
 typedef struct Fleur Fleur;
 struct Fleur {
   double * vect;
@@ -212,9 +214,7 @@ void distEuc(Fleur * all, Neurone * neur, int * tab){
         }
         som = sqrt(som);
         if(som <= bestDist){
-          if(som == bestDist){
-            list_append(list, x);
-          }
+          if(som == bestDist) list_append(list, x);
           else{
             free(list);
             list = NULL;
