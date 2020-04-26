@@ -11,7 +11,7 @@ else
 GL_LDFLAGS = -lGL -lglut -lGLU -OFast
 endif
 
-CFLAGS = -Wall
+CFLAGS = -Wall -std=c99
 LDFLAGS = -lm $(GL_LDFLAGS)
 #definition des fichiers et dossiers
 PROGNAME = network

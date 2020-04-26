@@ -1,0 +1,10 @@
+Matrice:
+10
+6
+EcartType:
+-0.05
+0.025
+NbIteration:
+2000
+Alpha:
+0.8
