@@ -28,6 +28,7 @@ typedef struct Data Data;
 struct Data {
   int nbVect;
   Vector * vect;
+  int * type;
 };
 
 typedef struct Neurone Neurone;
@@ -75,10 +76,10 @@ void initConfig(Config * config){
   exit(1);
 }
 
-void initData(Data * all){
+void initData(Data * all, char * fichier){
   int i;
   FILE *file = NULL;
-  file = fopen("iris.data", "r");
+  file = fopen(fichier, "r");
   int nbData = 0, nbVect = 0;
   if(file != NULL){
     ssize_t read;
@@ -93,6 +94,7 @@ void initData(Data * all){
       nbVect++;
     }
     all->vect = malloc(nbVect * sizeof(struct Vector));
+    all->type = malloc(nbVect * sizeof(int));
     all->nbVect = nbVect;
     for(i = 0; i<nbVect; i++){
       all->vect[i].value = malloc(nbData * sizeof(double));
@@ -106,15 +108,16 @@ void initData(Data * all){
 }
 
 //Remplis le vecteur de données
-void fillVect(Data * all){
-  initData(all);
+void fillVect(Data * all, char * fichier){
+  initData(all, fichier);
   FILE *file = NULL;
-  file = fopen("iris.data", "r");
+  file = fopen(fichier, "r");
   int nbVect = 0;
   if(file != NULL){
     ssize_t read;
     size_t len = 0;
     char * line = NULL;
+    char * temp = malloc(sizeof(char) * 50);
     int categorie = 0;
     while((read = getline(&line, &len, file)) != -1){
       char * token, *endptr;
@@ -124,15 +127,15 @@ void fillVect(Data * all){
         if(nbData < max){
           all->vect[nbVect].value[nbData] = strtod(token, &endptr);
         }
-        /*else{
-          //printf("%s && %s && %d\n", temp, token, nbVect);
-          if(strncmp(token, temp, read)){
+        else{
+          if(strcmp(token, temp)){
             categorie++;
-            all->type[nbVect] = categorie;
-            //printf("Type %d\n", all->type[nbVect]);
+            temp = strcpy(temp, token);
           }
-        }*/
-        token = strtok(NULL, ",");
+          all->type[nbVect] = categorie;
+        }
+        if(nbData < max-1) token = strtok(NULL, ",");
+        else token = strtok(NULL, "\n");
         nbData++;
       }
       nbVect++;
@@ -152,7 +155,7 @@ void fleurNorme(Data * all){
   for(i = 0; i<maxV;i++){
     double som = 0;
     for(j = 0; j<maxD; j++){
-      som += pow(all->vect[i].value[j],2);
+      som += (all->vect[i].value[j]) * (all->vect[i].value[j]);
     }
     double racine = sqrt(som);
     for(j = 0; j<maxD;j++){
@@ -259,7 +262,6 @@ void diffuse(double * all, Neurone * neur, int ij[2], int voisin, double a, int 
   if(j1 > y0-1) j1 = y0-1;
   for(i = i0; i <= i1; i++){
     for(j = j0; j<= j1;j++){
-      //printf("%d && %d && %d\n", i, j, i * y0 + j);
       for(x =0; x<max; x++){
         neur->vect[i * y0 + j].value[x] = neur->vect[i * y0 + j].value[x] + a * (all[x] - neur->vect[i * y0 + j].value[x]);
       }
@@ -278,9 +280,13 @@ void distEuc(Data * all, Neurone * neur, Config * config, int * tab){
   double division = t_total / voisin;
   int ij[2], phase = 1;
   for(g = 0; g<t_total; g++){
-    if(g>division && voisin > 1){ voisin--;  division+=division;}
-    if(g==first_total && phase == 1){ voisin = 1; t_total += config->iter/2; a /= 10; a2 = a; g = 0; phase = 2;}
-    if(g==last_total) return;
+    if(phase == 1){
+      if(g>division){ voisin--;  division+=division;}
+      if(g==first_total){ voisin = 1; t_total += config->iter/2; a /= 10; a2 = a; g = 0; phase = 2;}
+    }
+    else{
+      if(g==last_total) return;
+    }
     shuffle(tab, maxAll);
     a2 = a * (1-((double)g/(double)t_total));
     for(i = 0; i<maxAll; i++){
@@ -289,7 +295,7 @@ void distEuc(Data * all, Neurone * neur, Config * config, int * tab){
       for(x = 0; x < maxNeur; x++){
         double som = 0;
         for(j = 0; j < nbData; j++){
-          som += pow(all->vect[tab[i]].value[j] - neur->vect[x].value[j],2);
+          som += (all->vect[tab[i]].value[j] - neur->vect[x].value[j]) * (all->vect[tab[i]].value[j] - neur->vect[x].value[j]);
         }
         som = sqrt(som);
         if(som <= bestDist){
@@ -308,11 +314,6 @@ void distEuc(Data * all, Neurone * neur, Config * config, int * tab){
         indexGagnant = list_getDataByIndex(list, r);
       }
       findIJ(indexGagnant, x0, y0, ij);
-      //ij[0] = 3; ij[1] = 3;
-      int b, n;
-      n = (indexGagnant / 10);
-      b = (indexGagnant % 10);
-      //printf("%d && %d / %d && %d\n", ij[0], ij[1], n, b);
       diffuse(all->vect[tab[i]].value, neur, ij, voisin, a2, x0, y0);
     }
   }
@@ -338,9 +339,7 @@ void etiquetage(Data * all, Neurone * neur, int * tab){
         indexGagnant = x;
       }
     }
-    if(tab[i] >= 0 && tab[i] < 50) neur->categorie[indexGagnant] = 1;
-    if(tab[i] >= 50 && tab[i] < 100) neur->categorie[indexGagnant] = 2;
-    if(tab[i] >= 100 && tab[i] < 150) neur->categorie[indexGagnant] = 3;
+    neur->categorie[indexGagnant] = all->type[tab[i]];
   }
 }
 
@@ -378,14 +377,19 @@ void freeNeurone(Neurone * neur){
 }
 
 
-int main(){
+int main(int argc, char * argv[]){
+
+  if (argc<2) {
+    fprintf(stderr, "Usage : ./network file\n");
+    exit(0);
+  }
 
   srand(time(NULL));
   Config config;
   Data all;
   Neurone neur;
   initConfig(&config);
-  fillVect(&all);
+  fillVect(&all, argv[1]);
   fleurNorme(&all);
   fillVect2(&all, &neur, &config);
   int *tab = malloc(all.nbVect * sizeof(int));
