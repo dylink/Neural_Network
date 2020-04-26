@@ -28,7 +28,6 @@ typedef struct Data Data;
 struct Data {
   int nbVect;
   Vector * vect;
-  int * type;
 };
 
 typedef struct Neurone Neurone;
@@ -94,7 +93,6 @@ void initData(Data * all){
       nbVect++;
     }
     all->vect = malloc(nbVect * sizeof(struct Vector));
-    all->type = malloc(nbVect * sizeof(int));
     all->nbVect = nbVect;
     for(i = 0; i<nbVect; i++){
       all->vect[i].value = malloc(nbData * sizeof(double));
@@ -117,7 +115,6 @@ void fillVect(Data * all){
     ssize_t read;
     size_t len = 0;
     char * line = NULL;
-    char * temp = "";
     int categorie = 0;
     while((read = getline(&line, &len, file)) != -1){
       char * token, *endptr;
@@ -127,17 +124,15 @@ void fillVect(Data * all){
         if(nbData < max){
           all->vect[nbVect].value[nbData] = strtod(token, &endptr);
         }
-        else{
-          printf("%s && %s && %d\n", temp, token, nbVect);
+        /*else{
+          //printf("%s && %s && %d\n", temp, token, nbVect);
           if(strncmp(token, temp, read)){
             categorie++;
-            temp = strcpy(temp, token);
             all->type[nbVect] = categorie;
             //printf("Type %d\n", all->type[nbVect]);
           }
-        }
-        if(nbData < max-1) token = strtok(NULL, ",");
-        else token = strtok(NULL, "\n");
+        }*/
+        token = strtok(NULL, ",");
         nbData++;
       }
       nbVect++;
@@ -234,7 +229,7 @@ void findIJ(int data, int nbl, int nbc, int ij[2]){
   int i;
   ij[0] = 0; ij[1] = 0;
   for(i = 0; i<nbl; i++){
-    if(i*nbc < data){
+    if(i*nbc <= data){
       ij[0] = i;
     }
   }
@@ -264,6 +259,7 @@ void diffuse(double * all, Neurone * neur, int ij[2], int voisin, double a, int 
   if(j1 > y0-1) j1 = y0-1;
   for(i = i0; i <= i1; i++){
     for(j = j0; j<= j1;j++){
+      //printf("%d && %d && %d\n", i, j, i * y0 + j);
       for(x =0; x<max; x++){
         neur->vect[i * y0 + j].value[x] = neur->vect[i * y0 + j].value[x] + a * (all[x] - neur->vect[i * y0 + j].value[x]);
       }
@@ -312,6 +308,11 @@ void distEuc(Data * all, Neurone * neur, Config * config, int * tab){
         indexGagnant = list_getDataByIndex(list, r);
       }
       findIJ(indexGagnant, x0, y0, ij);
+      //ij[0] = 3; ij[1] = 3;
+      int b, n;
+      n = (indexGagnant / 10);
+      b = (indexGagnant % 10);
+      //printf("%d && %d / %d && %d\n", ij[0], ij[1], n, b);
       diffuse(all->vect[tab[i]].value, neur, ij, voisin, a2, x0, y0);
     }
   }
@@ -385,7 +386,6 @@ int main(){
   Neurone neur;
   initConfig(&config);
   fillVect(&all);
-  printf("%d\n", all.type[100]);
   fleurNorme(&all);
   fillVect2(&all, &neur, &config);
   int *tab = malloc(all.nbVect * sizeof(int));
