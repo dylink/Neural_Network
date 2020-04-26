@@ -271,48 +271,76 @@ void diffuse(double * all, Neurone * neur, int ij[2], int voisin, double a, int 
 
 //Fonction d'apprentissage
 void distEuc(Data * all, Neurone * neur, Config * config, int * tab){
-  int g, i, j, x;
+  int g, i, j, x, ij[2], phase = 1;
   List *list = NULL;
-  double a = config->alpha;
-  double a2 = a;
-  int t_total = config->iter/4, maxAll = all->nbVect, maxNeur = neur->nbVect, nbData = all->vect[0].capacity, x0 = config->tailleMatrice[0], y0 = config->tailleMatrice[1], first_total = t_total-1, last_total = (t_total+= config->iter/2)-1;
-  double voisin = findLimit(maxNeur);
-  double division = t_total / voisin;
-  int ij[2], phase = 1;
+  double a = config->alpha, a2 = a;
+
+  int t_total = config->iter/4,
+      maxAll = all->nbVect,
+      maxNeur = neur->nbVect,
+      nbData = all->vect[0].capacity,
+      x0 = config->tailleMatrice[0],
+      y0 = config->tailleMatrice[1],
+      first_total = t_total-1,
+      last_total = (t_total+= config->iter/2)-1;
+
+  double voisin = findLimit(maxNeur), division = t_total / voisin;
   for(g = 0; g<t_total; g++){
+
     if(phase == 1){
-      if(g>division){ voisin--;  division+=division;}
-      if(g==first_total){ voisin = 1; t_total += config->iter/2; a /= 10; a2 = a; g = 0; phase = 2;}
+
+      if(g>division){
+        voisin--;
+        division+=division;
+      }
+
+      if(g==first_total){
+        voisin = 1;
+        t_total += config->iter/2;
+        a /= 10;
+        a2 = a;
+        g = 0;
+        phase = 2;
+      }
     }
     else{
       if(g==last_total) return;
     }
+
     shuffle(tab, maxAll);
     a2 = a * (1-((double)g/(double)t_total));
+
     for(i = 0; i<maxAll; i++){
       int indexGagnant = 0;
       double bestDist = 2;
+
       for(x = 0; x < maxNeur; x++){
         double som = 0;
+
         for(j = 0; j < nbData; j++){
           som += (all->vect[tab[i]].value[j] - neur->vect[x].value[j]) * (all->vect[tab[i]].value[j] - neur->vect[x].value[j]);
         }
+
         som = sqrt(som);
         if(som <= bestDist){
           if(som == bestDist) list_append(list, x);
+
           else{
             list = NULL;
             list = list_append(list, x);
           }
           bestDist = som;
+
         }
       }
+
       indexGagnant = list->data;
       if(list_length(list) > 1){
         int div = RAND_MAX / list_length(list);
         int r = (rand() / div);
         indexGagnant = list_getDataByIndex(list, r);
       }
+      
       findIJ(indexGagnant, x0, y0, ij);
       diffuse(all->vect[tab[i]].value, neur, ij, voisin, a2, x0, y0);
     }
